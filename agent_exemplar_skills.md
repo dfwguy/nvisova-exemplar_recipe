@@ -1,124 +1,99 @@
-# Agent operating instructions: Exemplar B300 end-to-end
+# Agent handoff: prepare and run NVIDIA Exemplar Performance
 
-**Version: 2026-10-07. Companion: `run_exemplar.md`.** This is a portable instruction document for a coding agent, not a claim that a cluster is installed by reading it. The user can ask their installed agent to read both files and operate an approved environment. It is not automatically registered as a Codex skill by its filename; use it as explicit task guidance or adapt it into that environment's approved skill format.
+Read [README.md](README.md), [AGENTS.md](AGENTS.md), [run_exemplar.md](run_exemplar.md), [offline delivery](docs/airgap.md), and [acceptance criteria](docs/acceptance.md) before deployment work. This document is the portable execution contract for an agent; it contains no active campaign, prior scheduler job, customer inventory, or fixed hardware topology.
 
-Download the companion operator kit and checksum files from the authorized [NVFTP Exemplar_OVA folder](https://nvftp.nvidia.com/file-explorer/8250a39b-4b0d-47dd-ae22-27b0db9a4618/nvidia-space/shared/STN/Exemplar_OVA). Access requires the owner's approved account. Save `run_exemplar.md`, `agent_exemplar_skills.md`, `exemplar-operator-scripts.tar.gz`, the external `operator-scripts-manifest.json` and `SHA256SUMS.txt` together; run `sha256sum -c SHA256SUMS.txt` before using them. The archive also carries its per-source-file manifest. A successful checksum verifies downloaded content against this handoff, not authority to run its infrastructure commands.
+## Objective
 
+Take an approved target environment from discovery to a verified installation capable of executing the requested official Exemplar workload matrix. When execution is authorized, submit that matrix, monitor real training progress, archive the results and leave a resumable checkpoint. Complete independent authorized work while identifying exact missing inputs. Do not stop after a package download or a plan when installation/execution is within scope.
 
-## Purpose and scope
+## Required initial conversation
 
-Operate the fixed-release NVIDIA Exemplar Performance recipes on an approved Slurm cluster: discover current state; verify/install authorized prerequisites; validate compute/GPU/PSU/32-HCA/fabric health; stage identical recipe payloads; submit held jobs with exact transport settings; validate generated scripts and stage every recipient; release, monitor, archive and report actual training/performance evidence. Continue the selected queue without duplicate jobs, preserve the immediate-retry/second-failure-halt policy and retain evidence.
+Collect missing inputs together using `config/cluster.example.json` as a checklist:
 
-The existing STN target is **32 B300 nodes /256 GPUs**, with13 recipe cases from installed v26.08.01. Official Exemplar B300 qualification remains a separate512-GPU matrix. Do not reinterpret a256 supported-scale diagnostic as512 certification. Preserve official recipe/source configuration, dtype and scale-specific topology. Do not start the halted historical 512 suite as a substitute.
+- Existing versus new cluster; approved controller access and operator account.
+- Explicit compute inventory, GPU type/count, CPU architecture and desired workload/model/dtype/GPU-scale/repeat matrix.
+- Slurm account/partition/QoS and whether scheduler/runtime/driver installation is within scope.
+- Connected or air-gapped mode, approved staging system and transfer mechanism.
+- Shared versus node-local storage, persistent roots, capacity and result destination.
+- Fabric type, intended device/port inventory, approved transport settings and health evidence source.
+- Prepare-only versus prepare-and-run scope and maintenance restrictions.
 
-## Required inputs and agent bootstrap contract
+Ask the operator to provision credentials securely:
 
-Read `run_exemplar.md` fully before any action. Obtain the companion `exemplar-operator-scripts.tar.gz` from the same approved NVFTP folder. It contains reviewed-source starting points, a SHA256 manifest, and historical generated job86 examples; it does not contain licensed NeMo images, full official workload repositories, package closure/rootfs bootstrap bundles, credentials or operational state.
+> Provision a Hugging Face read token in `<HF_TOKEN_FILE>` using a restricted local file or secret manager. The account must have approval for every selected gated model repository. Provision authorized NGC registry access in `<ENROOT_CREDENTIALS_FILE>`. Confirm paths and readiness; do not send credential values in chat.
 
-Extract the kit to an empty **review directory**, not root:
+For air-gapped targets, provision download credentials on the connected staging host. Only artifact closure should cross the boundary unless an approved secret provisioning mechanism requires otherwise. Determine how the agent executes inside the restricted environment; do not assume external model/API connectivity.
 
-```bash
-mkdir -p ./exemplar-script-review
-tar -xzf exemplar-operator-scripts.tar.gz -C ./exemplar-script-review
-```
+## Durable state contract
 
-Review `operator-scripts-manifest.json`, validate file digests and inspect source before selecting destination paths. Site paths are preserved under `cluster/OVA/Exemplar/` and `cluster/OVA/NVISP2P/`. `reference/job86/` illustrates actual generated execution, not a reusable submission. Provision authorized official v26.08.01 Exemplar source, pinned recipe install, image access, Slurm/container runtime and NVIS release independently. Adapt hardcoded bindings and rebuild hashes for the adapted release. Missing helpers must be obtained or implemented under review; do not invent an executable path because a guide names it.
+Use a private campaign directory under the approved evidence root. Record non-secret deployment inputs, a unique campaign ID, source revision, intended tuple matrix, per-node artifact receipts, phase checks, scheduler IDs and UTC observations. Keep append-only attempt/event records, generated configuration/scripts, rank logs and an evidence index.
 
-For an existing cluster require owner-approved login/network access, trusted SSH identities, scheduler/account permissions and readable non-secret evidence. For a new cluster obtain roster, GPUs per host, persistence path, driver/RDMA/container compatibility, scheduler account/partition/GRES, allowed traffic/QoS/GID policy, telemetry endpoints, image/catalog endpoints and approved credential provisioning. The guides do not supply these inputs. If a dependency/access is absent, state exactly which input is missing, continue independent discovery and avoid dependent submission.
+On every resume, reconcile that state with the actual scheduler, active processes and held/running jobs. Empty queues, absent manifests and stale session names are not proof that a recipe completed. If accounting is unavailable, collect durable batch exit codes and per-rank completion evidence. Never submit a duplicate because an agent session restarted.
 
-## Hard operating rules
+## Phase 1 — Discover without assuming readiness
 
-- **Never reboot any STN node.** Do not reset GPUs, format/mount over data, replace boot hooks, change Slurm node state or mutate routes/switches simply to get a launch to succeed. Work within the user's authorized scope; routine reversible checks and authorized continuation do not need repeated confirmation. Infrastructure repair requiring additional scope must be explained with concrete evidence and proposed change.
-- Never print/copy private keys, HF/NGC tokens, passwords, Munge keys, secret environment files or credential-valued config into tools, logs, guides or uploads. Search bounded non-secret code/docs, not the entire filesystem for credentials. Inspect secret **presence/permissions**, use approved credential paths and read-only identities, and keep secret values out of shell command arguments. Do not use `set -x` around secrets. The previously exposed switch identity needs owner rotation; never reproduce its value.
-- Preserve host-key verification. Existing known_hosts must be verified against the intended host/IP. For unknown or changed keys, establish identity using an approved independent source before enrollment. Do not turn off strict checking or blindly accept changed keys. The installed HCA audit accepts new keys, so preverify selected hosts first.
-- Every participating host must retain all 32 intended HCA port1 devices. Missing one makes the node ineligible. A one-HCA or 30-HCA pass is diagnostic only and cannot waive the full-bandwidth policy.
-- Never change gate `ready:false` to true or alter timestamps to force a launch. Only actual matching passing evidence can approve. Never waive missing rank inventory, failed telemetry coverage or stale fabric evidence.
-- There may be only one active Exemplar job/campaign runner using the shared active manifest. Never resubmit a running/pending job or erase state/manifest to bypass locking.
-- Failed recipes retry immediately before another model, once. Another failure halts for diagnosis. Setup/staging/archive or runtime-inventory evidence errors halt immediately. Do not silently advance, invoke historical retry-after-suite scripts or loop indefinite retries.
-- Preserve dated logs/configs and original512 state. Changing cohort/HCAs requires a reviewed separate run manifest/directory and new validation. Do not overwrite old evidence to make the current run look successful.
+Inspect versions and current state of OS/kernel/architecture, GPUs/topology, Slurm services/account/GRES/PMIx, Enroot/Pyxis/hooks, mounts/capacity/inodes, approved network devices and telemetry. Find any existing official source/install/cache/images and verify versions before reuse. Identify active jobs and other runners.
 
-## State discovery: first action on any resume
+Deliverable: a discovery report with UTC timestamps, installed versus missing components, scope constraints, actual selected nodes, and the exact missing inputs. Use aliases in shareable reports. Do not copy secrets, environment dumps or unrelated filesystem content into the transcript.
 
-For STN read `/home/nvidia-ssh/AGENTS.md`, `/home/nvidia-ssh/EXEMPLAR_RUNS.md`, `/home/nvidia-ssh/EXEMPLAR_RUNS.json`, `/home/nvidia-ssh/RESUME_NVIS_P2P.md` and `/home/nvidia-ssh/TOPOLOGY_WORK.md`. Then inspect:
+## Phase 2 — Resolve the supported target
 
-```text
-/cluster/OVA/exemplar/logs/suite-256/state.json
-/cluster/OVA/exemplar/logs/suite-256/runner-status.json
-/cluster/OVA/exemplar/logs/suite-256/events.jsonl
-/cluster/OVA/exemplar/logs/suite-256/run-manifest.json
-/cluster/OVA/Exemplar/active-job.json
-/cluster/OVA/Exemplar/cohort256-nodes.txt
-/cluster/OVA/Exemplar/cohort256-preflight.json
-```
+Pin an approved full upstream Git commit and release. Read its workload metadata, installer documentation and CLI help. Confirm every requested GPU type/model/dtype/scale tuple is supported. Verify target architecture and image dependencies. Determine diagnostic versus qualification purpose from the operator's goal and the pinned validation process.
 
-Inspect tmux `exemplar-suite-256`, runner/observer processes and Slurm independently (`squeue`, `scontrol show job -o`, `sinfo -N`, node state/GRES). Reconcile manifests with actual allocation before changing anything. A runner lock or tmux name is not proof no orphaned Slurm job exists. Site accounting storage is disabled; do not depend on `sacct`. Controller-removed jobs need archived batch exit and durable jobs/job<ID>.json evidence, not a guess from empty squeue.
-
-As of **14:07 UTC October 7**, Nemotron job83 and DeepSeek retry job86 are successful: **two of 13 recipes completed successfully**. Job86 completed 50/50 and was archived with exit 0 and 256/256 runtime gate. Automatic refresh diagnostic job87 passed, then DeepSeek FP8 job88 entered RUNNING. Ten cases remained unattempted plus the active FP8 case. **This is a historical snapshot, not an instruction to submit another job.** Read actual current allocation and state.
-
-## Prerequisite workflow
-
-1. Validate controller Slurm/Munge/account/partition, no conflicting allocation, CLI/python/uv/install tree and free resources. Use source/config help from pinned release. Confirm controller `/cluster`  >= 50 GiB free and  >= 4 GiB available RAM, but also measure per-node persistent/extraction/log headroom.
-2. Validate each selected host's identity, eight GPUs, persistent `/stn-disk`, Exemplar symlink, static image/cache/workload presence, Munge/slurmd, Enroot4.2.1/Pyxis 0.24.0/hooks, PMIx and container GPU/RDMA visibility. STN's root is disposable; use approved v4 restoration design. Current boot marker and service health must match the current boot. No reboot validation.
-3. Check NVIS status from `edc003-su1/state/fleet-health-latest.json`; inspect age and exceptions. Current approved status needs peer/catalog timer/boot-container/runtime/image receipts. Never redistribute already-verified large images merely because an old checkpoint says not installed. `ready=2 installed=0 failed=0` is successful adoption.
-4. Refresh GPU/DCGM and PSU/Redfish evidence. Check current volatile ECC, remap failures/pending/reset requirements, Xid/NVLink, temperatures/power and exporter freshness. Separate historical aggregate ECC. Require full selected-node PSU coverage, expected bay coverage and no critical bay. Existing runner checks node coverage/value but independently verify age and completeness.
-5. Validate exactly 32 cohort names and all 32 HCA devices per host using `check_32hca_eligibility.py`. Require ACTIVE/LinkUp/200Gb/RoCEv2 GID3/carrier1 and IPv4-mapped GID matching netdev address. Save a new timestamped report. Never reduce list to intersection.
-6. Validate first sorted selected host owns numeric `MASTER_ADDR` on `enp57s0f0np0` and all selected nodes can reach rendezvous. STN current master node002/10.6.33.2, but re-read gate/IP. DNS repair does not establish TCPStore or RDMA correctness.
-7. Compare requested cohort with run-manifest identity and gate. Read incidents for related nodes/rails before repair proposals. Fresh switch LLDP/BGP is partial and cannot substitute for full-cohort NCCL. Design spreadsheet is a plan, not live observation.
-
-Read the official system prescreen section in the run guide; its checks are nonfatal, and its environment dumps require secret review/redaction before collection or sharing. Inspect CPU/NUMA/GPU-NIC topology, PMIx/container bootstrap and IBGDA readiness without automatically changing platform settings.
-
-Default supporting script locations are in `run_exemplar.md` section 12. Historical all 64 audit scripts write September output names: review/adapt destinations to avoid destroying old evidence. In another environment replace hardcoded approved fleet, SSH config/user, paths, account/partition, interface names, HCA identifiers, GID/QoS, master IP and telemetry labels consistently across all dependent scripts. Validate adaptation through plan and staged canaries before production scale.
-
-## NCCL preflight and gate contract
-
-Transport values must be explicit and forwarded through the generated container command. STN uses exact 32 HCA allowlist, GID3, CROSS_NIC0, NET=IB, QPS4, TC104, SL1, TIMEOUT20, GDR_C2C1, socket/Gloo interface `enp57s0f0np0`, matching UCX/NVSHMEM lists and INIT/NET isolated logs `/nemo_run/nccl-%h-%p.out`.
-
-A launch approval must have exact cohort,32 unique HCA names, matching first master host/private numeric IP, recent UTC <= 1800 seconds, `four_hca_canary_pass:true`, `all_rail_canary_pass:true`, `rendezvous_verified:true` and all-rail validationPASS/node_count 32/hca_count 32 with actual nonempty evidence file. Recheck Slurm and dynamic health before launch; neither two-node nor host-only checks approve full scale.
-
-Full-cohort canary requires **256 rank files**, successful retrieval from all 32, zero launcher exit, all 256 START/ALLREDUCE_PASS/P2P_PASS markers and strict rank inventory. Test verifies1/16MiB float32 all-reduce and1MiB P2P offsets 1/9/65/129. RuntimeGate requires each host/GPU exactly 32 port1 `NET/IB : Using` entries and eight disjoint four-device merged groups covering all 32. Missing/interleaved fragments are not pass evidence. Inventory validation is mandatory but cannot guarantee later Hybrid-EP training collectives.
-
-With authorized diagnostic scope and idle cohort, refresh existing ready-but-stale approval via:
+Complete and structurally validate the local input file:
 
 ```bash
-python3 /cluster/OVA/Exemplar/refresh_cohort256_preflight.py \
-  /cluster/OVA/Exemplar/cohort256-preflight.json \
-  /cluster/OVA/Exemplar/cohort256-nodes.txt
+python3 tools/prepare.py validate-config config/cluster.local.json
 ```
 
-The helper runs actual new srun, marks readyfalse in progress, preserves false on fail and updates true only on full validation. It refuses revoked approval/changed cohort. Its launcher hardcodes canonical file paths; alternate positional files are not isolation. Review/adapt before another campaign. Runner automatically refreshes an otherwise-ready approval between recipes after 1800 seconds; startup still needs a current approval. Never run the refresh alongside active training.
+Deliverable: a release/compatibility matrix and an installation plan with versioned dependencies, expected paths/mounts, secret references, storage budget, transport design and readiness evidence requirements. Structural validation is not permission to launch.
 
-## Authorized launch and resume workflow
+## Phase 3 — Prepare infrastructure
 
-1. If any matching job is running, monitor it. If an existing healthy runner is handling the queue, leave it running. Do not start another session because the user asked for progress.
-2. If halted, identify exact event/failed key, retry history and whether a held job exists. Preserve outputs first. Diagnose second failures before any continuation. Reconcile an orphaned job without erasing active manifest to fake idleness.
-3. Inspect no-submit plan:
+Within approved scope, prepare OS dependency closure, supported GPU driver/RDMA or libfabric stack, scheduler/GPU allocation, authentication and container runtime integration. Use the platform's maintained installation/configuration system. Reconcile UID/GID, clocks, PMIx libraries, Pyxis plugin and required distributed/GPU hooks. Make persistent cache/install/evidence paths writable by the intended identity.
 
-```bash
-python3 /cluster/OVA/Exemplar/run_b300_suite_256.py \
-  --nodes-file /cluster/OVA/Exemplar/cohort256-nodes.txt --plan
-```
+For existing services, preserve configuration and current workload isolation. Driver/kernel changes, reboots, privileged restoration or fabric changes need an approved maintenance procedure. Do not mutate routes, reset GPUs or weaken health gates to make a benchmark start.
 
-4. Once all conditions and user authorization cover continuation, use the canonical `run_b300_suite_256.py` in `exemplar-suite-256` tmux with `python3 -u`, cohort file and preflight file; preserve append-only runner logs. Use section 9 of the run guide for the complete command.
-5. Runner calls `llmb-run submit ... --scale 256 --slurm-arg hold`, verifies generated sbatch, stages 32/32 via SHA256 tar, writes active manifest and releases. Do not bypass with raw sbatch or release an unstaged held job.
-6. Inspect resource/allocation32 nodes/eight ranks each, correct image/offline mounts/env, nofile65535 and isolated NCCL evidence. Runtime gate is required within 300 seconds; unreadable three times or invalid/incomplete inventory cancels/halts. Missing valid batch host 30 seconds also fails.
-7. Monitor actual steps, scheduler and health. On terminal state archive all main/batch/per-process logs and metadata/hash, then apply immediate retry/halt. An archive failure halts; preserve remote files rather than moving on.
+Deliverable: version/service manifest and scheduler/container smoke evidence. The upstream recipe installer does not provision a whole operating system or scheduler for you.
 
-Use `--priority-failed-key` only for the recorded failed key under diagnosed continuation. `--resume-held-job` only for an existing verified held job matching intended first incomplete task; inspect interplay with failed priorities. Do not edit completed_keys manually: failed attempts belong there and results map carries success/failure. Starting the runner automatically prioritizes recorded failed tasks before new tasks. Do not call `llmb-run exemplar` for 256; it selects512. Do not invoke historical30-HCA or512 launchers.
+## Phase 4 — Obtain and install software
 
-## Monitoring and interpreting results
+Connected mode: use secure credential provisioning and the official installer from the pinned checkout. Reconcile its generated cluster configuration with the reviewed inputs. Inspect any persisted secret values before staging or sharing configuration.
 
-Read runner-status heartbeat every active check, latest events and Slurm state. Watcher updates every 15 seconds but sends no chat messages. Report any observed blocker promptly. During sustained active work give concise updates; do not invent progress from log growth. Use active manifest batch_host/log_path for SSH reads because experiments are node-local. After completion use archived record.log_path. Keep all per-host `nccl-*.out`, not just combined stdout.
+Air-gap mode: follow `docs/airgap.md`; build the source/image/model-cache/package/Python closure on a compatible connected host. Record registry digests and local image hashes, preserve internal cache links and exclude credentials. Verify the transferred payload, install without internet, and test absence of late downloads.
 
-Report workload/dtype/scale/job ID, Slurm state, elapsed time, latest completed step/total and its UTC observation time, latest step seconds/model TFLOPS per GPU, runtime gate rank count and any first-fault evidence. If no iteration exists, say so. Startup compilation/optimizer initialization and PyTorch warnings are not completed steps; a warning alone is not fatal.
+Deliverable: exact artifact inventory, provenance, non-secret effective configuration, installed CLI/workloads, and offline rehearsal evidence when applicable. Obtain missing source/helpers from approved upstreams instead of inventing an executable path.
 
-DeepSeek text `GPU utilization: 864.6MODEL_TFLOP/s/GPU` reports modeled throughput, **not 864.6% utilization**. Distinguish DCGM utilization%. Convert iteration milliseconds to seconds. Preserve TP/PP/CP/VP/EP/ETP/MBS/GBS settings from generated configuration. Compare score-window mean using official parser and approved **same release/model/precision/scale/GPU** baseline; do not compare a256 final step to512 baseline or conclude qualification from exit 0. Document >95% criterion only with corresponding approved baseline and complete suite results.
+## Phase 5 — Deliver to recipients
 
-Normalize timestamps: compute log strings may be UTC-7, while checkpoint/event JSON uses UTC. Record timezone or use explicit UTC source to correlate incidents. Preserve original timestamps in archives.
+Shared layout: prove shared backing-store and container mount visibility from the actual compute nodes. Node-local layout: verify static payload identity at every intended recipient, preserve required absolute paths and keep per-node receipts.
 
-## Completion, artifacts and handoff
+Generated experiments need a separate per-job staging step. When using node-local paths, generate or submit held through the pinned supported CLI, inspect intended allocation, stage experiment files to all intended recipients, verify hashes/mounts, then release only after current readiness passes. Do not reuse old job scripts or assume image delivery also copied generated files.
 
-Keep suite-state and official 512 state separate. Verify all 13 latest result states are COMPLETED before saying256 suite complete; count failed attempts independently. Preserve qualification label “256-GPU supported-scale diagnostic; not 512-GPU Exemplar qualification.” Include gate/runtime evidence, source version/hash, image hashes, selected cohort, transport/env, generated scripts/configs, staging reports, main/batch/rank logs, first-fault diagnosis and performance window/baseline provenance.
+Deliverable: static and generated payload receipts plus actual recipient/allocation mapping.
 
-Inspect pinned `llmb-run archive --help` for official archive behavior, retrieve all node-local outputs first, and package custom health/fabric evidence separately if not included. Upload only to an authorized destination and verify readback SHA256. Do not automatically message others. Documentation/kit publication is not authorization to submit a training job or rotate/alter infrastructure.
+## Phase 6 — Validate the live cluster
 
-If blocked, report concrete blocker, evidence path/time, completed independent checks and exact next required owner input/repair. Do not say “install the agent and it will run everything” when access, payload or fabric is absent. Update durable approved checkpoint files through the existing workflow so the next agent resumes without repeating probes or jobs.
+Collect fresh whole-cohort GPU/power, scheduler/storage, runtime, rendezvous and communication evidence. Use the expected device/port inventory from the reviewed target; no fixed NIC count, GID, traffic class or socket interface is universal. Test inside the actual container with the intended rank bootstrap and transport.
+
+Run canaries before the full-cohort collective test. Confirm every intended rank and device/provider is represented. A one-node, reduced-rail or host-only test is diagnostic evidence, not full-scale launch acceptance. Refresh evidence after configuration, cohort, artifact or boot changes and recheck dynamic health just before submission.
+
+Deliverable: readiness record tied to cohort, source/image/configuration identity, time, checks and evidence. Never create a ready flag from intention or rewrite timestamps.
+
+## Phase 7 — Plan and execute the recipe
+
+Use the pinned CLI to preview each explicit tuple. Inspect generated account/partition/node/rank/GPU count, image/mounts, precision, model and parallelism. If execution is in scope and the gates pass, launch only the reviewed matrix, with a campaign lock and durable attempt records.
+
+Inspect `llmb-run exemplar` behavior separately before using it: a qualification suite command may select a fixed scale. A smaller supported diagnostic must use its explicit tuple and be labeled accordingly.
+
+Monitor scheduler and actual iteration progress. Report latest completed step/time, step duration, modeled throughput with units, rank/transport evidence and first faults. Archive all node-local outputs before advancing. On setup/staging/integrity/evidence failure halt affected advancement; on a workload failure preserve first-fault evidence, diagnose and allow at most one authorized corrected retry before halting the campaign on another failure.
+
+Deliverable: real scheduler IDs, generated scripts/configs, complete logs, outcome/attempt history and parsed metrics. Do not classify missing log evidence as success.
+
+## Phase 8 — Archive and hand off
+
+Use the pinned archive CLI after collecting all remote outputs. Package external readiness/fabric records separately if not included. Scan for secrets, retain hashes, verify upload readback only when an upload destination is authorized, and record retention policy.
+
+Report completed preparation gates and actual recipe outcomes separately. Compare performance only with a matching approved baseline and scoring window. Qualification follows the applicable NVIDIA validation/review process; exit zero alone does not confer certification.
+
+Leave a checkpoint with active/held jobs, evidence paths/times/hashes, secret provisioning status, blockers and the next exact safe action. Never automatically message another person, upload results or operate another environment beyond the approved scope.
