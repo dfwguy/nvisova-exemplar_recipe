@@ -480,3 +480,7 @@ The repository checks prevent site-bound identifiers, private address literals, 
 - [Hugging Face cache layout](https://huggingface.co/docs/huggingface_hub/guides/manage-cache)
 
 Public `main` documentation can change. For installation and scoring decisions, read the equivalent documents from the exact pinned upstream commit and retain that provenance. NVIDIA names and marks belong to NVIDIA; the local banner is project styling, not a certification mark.
+
+## Portable deployment entry point
+
+Give [deploy.md](deploy.md) to your deployment agent for discovery, installation, execution and acceptance.
